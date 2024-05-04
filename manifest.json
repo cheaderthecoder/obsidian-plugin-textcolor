@@ -1,11 +1,11 @@
 {
 	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"name": "Text Color Plugin",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
+	"description": "a Plugin To Change The Color of All Text In Obsidian",
+	"author": "cheaderthecoder",
+	"authorUrl": "https://github.com/cheaderthecoder",
 	"fundingUrl": "https://obsidian.md/pricing",
 	"isDesktopOnly": false
 }

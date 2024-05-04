@@ -1,134 +1,273 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Modal, App, Setting, Notice, Plugin } from 'obsidian';
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	mySetting: string;
+interface Color {
+  r: number;
+  g: number;
+  b: number;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+class ColorPicker {
+  hue: number;
+  saturation: number;
+  lightness: number;
+  opacity: number;
+
+  constructor() {
+    this.hue = 0;
+    this.saturation = 100;
+    this.lightness = 50;
+    this.opacity = 1;
+  }
+
+  setHue(hue: number) {
+    this.hue = hue;
+  }
+
+  setSaturation(saturation: number) {
+    this.saturation = saturation;
+  }
+
+  setLightness(lightness: number) {
+    this.lightness = lightness;
+  }
+
+  setOpacity(opacity: number) {
+    this.opacity = opacity;
+  }
+
+  convertToRGB(): { r: number; g: number; b: number; a: number } {
+    const h = this.hue / 360;
+    const s = this.saturation / 100;
+    const l = this.lightness / 100;
+    let r, g, b;
+
+    if (s === 0) {
+      r = g = b = l; // achromatic
+    } else {
+      const hue2rgb = (p: number, q: number, t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1 / 3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1 / 3);
+    }
+
+    return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255), a: this.opacity };
+  }
+
+  getHex(): string {
+    const rgbColor = this.convertToRGB();
+    return this.rgbToHex(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a);
+  }
+
+  setFromHex(hex: string) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    let a;
+    if (hex.length === 9) {
+      a = parseInt(hex.slice(7, 9), 16) / 255;
+    } else {
+      a = 1; // default to fully opaque if alpha channel is not provided
+    }
+    this.hue = this.rgbToHue(r, g, b);
+    this.saturation = this.rgbToSaturation(r, g, b);
+    this.lightness = this.rgbToLightness(r, g, b);
+    this.opacity = a;
+  }
+  
+
+  rgbToHex(r: number, g: number, b: number, a: number): string {
+    const hex = (n: number) => n.toString(16).padStart(2, '0');
+    const aHex = Math.round(a * 255);
+    return `#${hex(r)}${hex(g)}${hex(b)}${hex(aHex)}`;
+  }
+
+  rgbToHue(r: number, g: number, b: number): number {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+
+    if (max !== min) {
+      const d = max - min;
+      switch (max) {
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
+      }
+      h /= 6;
+    }
+    return Math.round(h * 360);
+  }
+
+  rgbToSaturation(r: number, g: number, b: number): number {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let s: number, l: number;
+
+    l = (max + min) / 2;
+
+    if (max === min) {
+      s = 0; // achromatic
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    }
+    return Math.round(s * 100);
+  }
+
+  rgbToLightness(r: number, g: number, b: number): number {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let l: number;
+
+    l = (max + min) / 2;
+
+    return Math.round(l * 100);
+  }
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+class ColorPickerModal extends Modal {
+  colorPicker: ColorPicker;
+  hexInput: HTMLInputElement;
+  colorPreviewBox: HTMLElement;
 
-	async onload() {
-		await this.loadSettings();
+  constructor(app: App, colorPicker: ColorPicker) {
+    super(app);
+    this.colorPicker = colorPicker;
+  }
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.createEl('h3', { text: 'Choose a color' });
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+    new Setting(contentEl)
+      .setName('Hue')
+      .addSlider(slider => slider
+        .setLimits(0, 360, 1)
+        .setValue(this.colorPicker.hue)
+        .onChange((value: number) => {
+          this.colorPicker.setHue(value);
+          this.updateHexInput();
+          this.updateColorPreview();
+        }));
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+    new Setting(contentEl)
+      .setName('Saturation')
+      .addSlider(slider => slider
+        .setLimits(0, 100, 1)
+        .setValue(this.colorPicker.saturation)
+        .onChange((value: number) => {
+          this.colorPicker.setSaturation(value);
+          this.updateHexInput();
+          this.updateColorPreview();
+        }));
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
+    new Setting(contentEl)
+      .setName('Lightness')
+      .addSlider(slider => slider
+        .setLimits(0, 100, 1)
+        .setValue(this.colorPicker.lightness)
+        .onChange((value: number) => {
+          this.colorPicker.setLightness(value);
+          this.updateHexInput();
+          this.updateColorPreview();
+        }));
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+    new Setting(contentEl)
+      .setName('Opacity')
+      .addSlider(slider => slider
+        .setLimits(0, 1, 0.01)
+        .setValue(this.colorPicker.opacity)
+        .onChange((value: number) => {
+          this.colorPicker.setOpacity(value);
+          this.updateHexInput();
+          this.updateColorPreview();
+        }));
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
+    new Setting(contentEl)
+      .setName('HEX')
+      .addText(text => {
+        text.inputEl.type = 'text';
+        text.inputEl.pattern = '[#][0-9a-fA-F]{8}';
+        text.setValue(this.colorPicker.getHex());
+        text.onChange((value: string) => {
+          if (/^#[0-9a-fA-F]{8}$/.test(value)) {
+            this.colorPicker.setFromHex(value);
+            this.updateSliders();
+            this.updateColorPreview();
+          }
+        });
+        this.hexInput = text.inputEl;
+      });
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-	}
+    this.colorPreviewBox = contentEl.createEl('div', { cls: 'color-preview-box' });
+    this.colorPreviewBox.style.height = '50px';
+    this.colorPreviewBox.style.width = '100%';
+    this.colorPreviewBox.style.border = '1px solid #ddd';
+    this.updateColorPreview();
 
-	onunload() {
+    new Setting(contentEl)
+      .addButton(button => {
+        button.setButtonText('Save')
+          .onClick(() => {
+            const rgbColor = this.colorPicker.convertToRGB();
+            const colorString = `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${rgbColor.a})`;
+            document.documentElement.style.setProperty('--selected-color', colorString);
+            new Notice(`Color ${colorString} saved!`);
+            this.close();
+          });
+      });
+  }
 
-	}
+  private updateHexInput() {
+    const rgbColor = this.colorPicker.convertToRGB();
+    this.hexInput.value = this.colorPicker.rgbToHex(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a);
+  }
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
+  private updateSliders() {
+    // Update hue, saturation, lightness, and opacity sliders based on the HEX value
+    // ...
+  }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+  private updateColorPreview() {
+    const hexColor = this.colorPicker.getHex();
+    this.colorPreviewBox.style.backgroundColor = hexColor;
+  }
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
+export default class TextColorPlugin extends Plugin {
+  async onload() {
+    this.addCommand({
+      id: 'textcolor',
+      name: 'Change Text Color',
+      callback: () => {
+        const colorPicker = new ColorPicker();
+        new ColorPickerModal(this.app, colorPicker).open();
+      },
+    });
+  }
 }

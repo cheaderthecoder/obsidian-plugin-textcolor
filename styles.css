@@ -1,8 +1,27 @@
-/*
-
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
+/* :root {
+    --selected-color: rgb(0, 140, 255); Default color 
+  }
+  
+  For editing mode 
+  .cm-s-obsidian {
+    color: var(--selected-color) !important;
+  }
+  
+   For read/preview mode 
+  .markdown-preview-view {
+    color: var(--selected-color) !important;
+  }
+  
+   Style for the color preview box 
+  .color-preview-box {
+    margin-top: 10px;
+    border-radius: 4px;
+    border: 1px solid #ddd; Optional: border for the color preview box 
+  }
+  */
+  .cm-s-obsidian,
+  .markdown-preview-view {
+    color: var(--selected-color);
+  }
+  
+  
