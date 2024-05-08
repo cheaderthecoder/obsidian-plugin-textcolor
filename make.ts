@@ -1,5 +1,4 @@
-
-import { Modal, App, Setting, Notice, Plugin } from 'obsidian';
+/* import { Modal, App, Setting, Notice, Plugin } from 'obsidian';
 
 interface Color {
   r: number;
@@ -84,12 +83,6 @@ class ColorPicker {
     this.lightness = this.rgbToLightness(r, g, b);
     this.opacity = a;
   }
-  
-  
-  
-  
-
-  
 
   rgbToHex(r: number, g: number, b: number, a: number): string {
     const hex = (n: number) => n.toString(16).padStart(2, '0');
@@ -156,14 +149,44 @@ class ColorPicker {
   }
 }
 
+interface TextColorPluginSettings {
+  selectedColor: string;
+}
+
+export default class TextColorPlugin extends Plugin {
+  settings: TextColorPluginSettings;
+
+  async onload() {
+    this.settings = Object.assign({}, await this.loadData());
+
+    this.addCommand({
+      id: 'textcolor',
+      name: 'Change Text Color',
+      callback: () => {
+        const colorPicker = new ColorPicker();
+        if (this.settings.selectedColor) {
+          colorPicker.setFromHex(this.settings.selectedColor);
+        }
+        new ColorPickerModal(this.app, colorPicker, this).open();
+      },
+    });
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
+}
+
 class ColorPickerModal extends Modal {
   colorPicker: ColorPicker;
   hexInput: HTMLInputElement;
   colorPreviewBox: HTMLElement;
+  plugin: TextColorPlugin;
 
-  constructor(app: App, colorPicker: ColorPicker) {
+  constructor(app: App, colorPicker: ColorPicker, plugin: TextColorPlugin) {
     super(app);
     this.colorPicker = colorPicker;
+    this.plugin = plugin;
   }
 
   onOpen() {
@@ -214,29 +237,27 @@ class ColorPickerModal extends Modal {
           this.updateColorPreview();
         }));
 
-        new Setting(contentEl)
-        .setName('HEX')
-        .addText(text => {
-          text.inputEl.type = 'text';
-          text.inputEl.pattern = '[#][0-9a-fA-F]{6,8}';
-          text.setValue(this.colorPicker.getHex());
-          text.onChange((value: string) => {
-            if (/^#[0-9a-fA-F]{6,8}$/.test(value)) {
-              this.colorPicker.setFromHex(value);
-              this.updateSliders();
-              this.updateColorPreview();
-            }
-          });
-          this.hexInput = text.inputEl;
-        });      
-      
-      
-      
+    new Setting(contentEl)
+      .setName('HEX')
+      .addText(text => {
+        text.inputEl.type = 'text';
+        text.inputEl.pattern = '[#][0-9a-fA-F]{8}';
+        text.setValue(this.colorPicker.getHex());
+        text.onChange((value: string) => {
+          if (/^#[0-9a-fA-F]{8}$/.test(value)) {
+            this.colorPicker.setFromHex(value);
+            this.updateSliders();
+            this.updateColorPreview();
+          }
+        });
+        this.hexInput = text.inputEl;
+      });
 
     this.colorPreviewBox = contentEl.createEl('div', { cls: 'color-preview-box' });
     this.colorPreviewBox.style.height = '50px';
     this.colorPreviewBox.style.width = '100%';
     this.colorPreviewBox.style.border = '1px solid #ddd';
+    this.colorPreviewBox.style.backgroundColor = this.hexInput.value;
     this.updateColorPreview();
 
     new Setting(contentEl)
@@ -247,38 +268,26 @@ class ColorPickerModal extends Modal {
             const colorString = `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${rgbColor.a})`;
             document.documentElement.style.setProperty('--selected-color', colorString);
             new Notice(`Color ${colorString} saved!`);
+            this.plugin.settings.selectedColor = this.colorPicker.getHex();
+            this.plugin.saveSettings();
             this.close();
           });
       });
   }
 
-  private updateHexInput() {
-    const rgbColor = this.colorPicker.convertToRGB();
-    this.hexInput.value = this.colorPicker.rgbToHex(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a);
-  }
-
-  private updateSliders() {
-    // Update hue, saturationss, lightne, and opacity sliders based on the HEX value
-    // ...
-  }
-
-  private updateColorPreview() {
-    const hexColor = this.colorPicker.getHex();
-    this.colorPreviewBox.style.backgroundColor = hexColor;
-  }
+private updateHexInput() {
+const rgbColor = this.colorPicker.convertToRGB();
+this.hexInput.value = this.colorPicker.rgbToHex(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a);
 }
 
-
-
-export default class TextColorPlugin extends Plugin {
-  async onload() {
-    this.addCommand({
-      id: 'textcolor',
-      name: 'Change Text Color',
-      callback: () => {
-        const colorPicker = new ColorPicker();
-        new ColorPickerModal(this.app, colorPicker).open();
-      },
-    });
-  }
+private updateSliders() {
+// Update hue, saturation, lightness, and opacity sliders based on the HEX value
+// This is a placeholder. You'll need to implement this method based on your UI.
 }
+
+private updateColorPreview() {
+const hexColor = this.colorPicker.getHex();
+this.colorPreviewBox.style.backgroundColor = hexColor;
+}
+}
+*/
