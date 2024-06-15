@@ -1,6 +1,6 @@
 # Obsidian text color plugin
 
-This is a plugin for Obsidian (https://obsidian.md).
+This is a plugin for [Obsidian](https://obsidian.md).
 
 This project uses Typescript to provide a simple way to change the color of all user typed text.
 
