@@ -1,4 +1,3 @@
-
 import { Modal, App, Setting, Notice, Plugin } from 'obsidian';
 
 interface Color {
