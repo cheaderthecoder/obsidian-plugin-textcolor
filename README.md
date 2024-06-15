@@ -14,6 +14,6 @@ This project uses Typescript to provide a simple way to change the color of all 
 
 
 ## How to install
-- Clone this repo to your vault-name/.obsidian/plugins/
+- Clone [this repo](https://github.com/cheaderthecoder/obsidian-text-color) to your vault-name/.obsidian/plugins/
 - Make sure to restart obsidian after by closing and reopening obsidian
 - Thats it
