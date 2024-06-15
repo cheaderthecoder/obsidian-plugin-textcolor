@@ -3,7 +3,7 @@
 	"name": "Text Color Plugin",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "a Plugin To Change The Color of All Text In Obsidian",
+	"description": "a Plugin To Change The Color of All User typed text Text In Obsidian",
 	"author": "cheaderthecoder",
 	"authorUrl": "https://github.com/cheaderthecoder",
 	"fundingUrl": "https://obsidian.md/pricing",
