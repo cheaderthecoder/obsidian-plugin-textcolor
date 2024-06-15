@@ -12,5 +12,5 @@ This plugin can:
 
 ## How to install
 - Clone this repo to your vault-name\.obsidian\plugins\
-- Make sure to restart obsidian after by closing and opening obsidian
-- Thats Done
+- Make sure to restart obsidian after by closing and reopening obsidian
+- Thats it
